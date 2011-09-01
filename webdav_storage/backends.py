@@ -107,10 +107,14 @@ class WebDAVStorage(Storage):
     def _save(self, name, content):
         url = self._get_url(name)
         http = self._construct_http()
-        content.seek(0)
-        body = content.read()
+        if content.closed:
+            content.open()
+        else:
+            content.seek(0)
 
-        response, response_body = http.request(url, 'PUT', body=body, headers={'Content-type': 'application/octet-stream'})
+        with content:
+            response, response_body = http.request(url, 'PUT', body=content, headers={'Content-type': 'application/octet-stream'})
+
         if response.status >= 400:
             raise HTTPError('PUT', url, response.status)
         return name
